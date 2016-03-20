@@ -94,8 +94,12 @@ public class Helper {
 	}
 
 
-
-	private class Instance {
+	/**
+	 * This stores the category and attributes of an instance.
+	 * @author yanlong
+	 *
+	 */
+	public class Instance {
 		/**
 		 * Index of the category in categoryName List.
 		 * live should be 0, die should be 1.
