@@ -16,7 +16,7 @@ public class Helper {
 	private List<Instance> allInstances;
 	//This is where the data file should be
 	private String root = "src/ass1-data/part2/";
-	
+
 	/**
 	 * This consturcts a Helper from the given name of data file.
 	 * @param fname is the name string of the data file to be read.
@@ -60,7 +60,7 @@ public class Helper {
 		/* instance = classname and space separated attribute values */
 		List<Instance> instances = new ArrayList<Instance>();
 		String ln;
-		while (din.hasNext()){ 
+		while (din.hasNext()){
 			Scanner line = new Scanner(din.nextLine());
 			instances.add(new Instance(categoryNames.indexOf(line.next()),line));
 		}
@@ -92,6 +92,15 @@ public class Helper {
 	public List<Instance> getAllInstances() {
 		return allInstances;
 	}
+
+
+	/**
+	 * @return the numCategories
+	 */
+	public int getNumCategories() {
+		return numCategories;
+	}
+
 
 
 	/**
