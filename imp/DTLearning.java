@@ -56,12 +56,10 @@ public class DTLearning {
 			String line = indent + node.name + " = " + "True:";
 			treeWriter.println(line);
 			printTreeRec(node.left, treeWriter, indent+"\t");
-			printTreeRec(node.right, treeWriter, indent+"\t");
 		}
 		if(node.right != null){
 			String line = indent + node.name + " = " + "False:";
 			treeWriter.println(line);
-			printTreeRec(node.left, treeWriter, indent+"\t");
 			printTreeRec(node.right, treeWriter, indent+"\t");
 		}else{
 			String line = indent + "Class "+node.name+", prob = "+((LeafNode)node).probability;
