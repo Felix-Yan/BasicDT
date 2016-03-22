@@ -15,7 +15,7 @@ public class Helper {
 	private List<String> attNames;
 	private List<Instance> allInstances;
 	//This is where the data file should be
-	private String root = "src/ass1-data/part2/";
+	public final String directory = "src/ass1-data/part2/";
 
 	/**
 	 * This consturcts a Helper from the given name of data file.
@@ -32,7 +32,7 @@ public class Helper {
 		 * names of attributes
 		 * category followed by true's and false's for each instance
 		 */
-		fname = root + fname;
+		fname = directory + fname;
 		System.out.println("Reading data from file "+fname);
 		try {
 			Scanner din = new Scanner(new File(fname));

@@ -1,5 +1,8 @@
 package imp;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,26 +17,72 @@ public class DTLearning {
 	private List<String> categoryNames;
 	private List<String> attNames;
 	private Node root;//root node of the decision tree
-	public static final int DUMMY_INDEX = 999;//only to satisfy the node constructor
 
 	/**
 	 * This constructs a learned decision tree from helpers.
 	 * @param train. Helper keeping all the training set instances.
 	 * @param test. Helper keeping all the testing set instances.
+	 * @throws UnsupportedEncodingException
+	 * @throws FileNotFoundException
 	 */
-	public DTLearning(Helper train, Helper test) {
+	public DTLearning(Helper train, Helper test) throws FileNotFoundException, UnsupportedEncodingException {
 		trainingSet = train;
 		testingSet = test;
 		categoryNames = trainingSet.getCategoryNames();
 		attNames = trainingSet.getAttNames();
 		root = BuildTree(trainingSet.getAllInstances(), attNames);
+		printTree();
+		//testAccuracy();
+	}
+
+	/**
+	 * This prints out the decision tree in a text format
+	 * @throws UnsupportedEncodingException
+	 * @throws FileNotFoundException
+	 */
+	private void printTree() throws FileNotFoundException, UnsupportedEncodingException{
+		String filename = trainingSet.directory+"tree.txt";
+		PrintWriter treeWriter = new PrintWriter(filename, "UTF-8");
+		String indentation = "";
+		printTreeRec(root, treeWriter, indentation);
+		treeWriter.close();
+	}
+
+	/**
+	 * This prints out the decision tree nodes recusively.
+	 */
+	private void printTreeRec(Node node, PrintWriter treeWriter, String indent){
+		if(node.left != null){
+			String line = indent + node.name + " = " + "True:";
+			treeWriter.println(line);
+			printTreeRec(node.left, treeWriter, indent+"\t");
+			printTreeRec(node.right, treeWriter, indent+"\t");
+		}
+		if(node.right != null){
+			String line = indent + node.name + " = " + "False:";
+			treeWriter.println(line);
+			printTreeRec(node.left, treeWriter, indent+"\t");
+			printTreeRec(node.right, treeWriter, indent+"\t");
+		}else{
+			String line = indent + "Class "+node.name+", prob = "+((LeafNode)node).probability;
+			treeWriter.println(line);
+		}
 	}
 
 	/**
 	 * This tests the prediction accuracy of the decision tree against a test set
 	 */
 	private void testAccuracy(){
-		List<Helper.Instance> testInstances = testingSet.getAllInstances();
+		System.out.println("begin to test");//debug
+		List<Helper.Instance> testsetInstances = testingSet.getAllInstances();
+		int count = 0;
+		for(Helper.Instance i: testsetInstances){
+			if(testInstance(i)){
+				count++;
+			}
+		}
+		double accuracy = count*1.0/testsetInstances.size();
+		System.out.printf("The accuracy is %.2f \n"+accuracy);
 
 	}
 
@@ -43,14 +92,14 @@ public class DTLearning {
 	 */
 	private boolean testInstance(Helper.Instance instance){
 		Node current = root;
-		while(current.attIndex != DUMMY_INDEX){
+		while(current.left != null){
 			if(instance.getAtt(current.attIndex)){
 				current = root.left;
 			}else{
 				current = root.right;
 			}
 		}
-		if(current.attribute.equals(categoryNames.get(instance.getCategory()))){
+		if(current.name.equals(categoryNames.get(instance.getCategory()))){
 			return true;//true if the predicted class name is the same as the instance class
 		}
 		return false;//false otherwise
@@ -62,32 +111,60 @@ public class DTLearning {
 	 * @param attibutes
 	 */
 	private Node BuildTree(List<Helper.Instance> instances, List<String> attributes){
-		if(instances.isEmpty()){
+		List<Helper.Instance> newInstances = newInstances(instances);
+		List<String> newAttributes = newAttributes(attributes);
+		if(newInstances.isEmpty()){
 			//return the overall most probable class node
 			return findMostProbableNode(trainingSet.getAllInstances());
 		}
 
-		if(isPure(instances)){
-			int category = instances.get(0).getCategory();
+		if(isPure(newInstances)){
+			int category = newInstances.get(0).getCategory();
 			String name = categoryNames.get(category);
-			return new LeafNode(null,null,name,DUMMY_INDEX,1);
+			return new LeafNode(null,null,name,category,1);
 		}
 
-		if(attributes.isEmpty()){
+		if(newAttributes.isEmpty()){
 			//return the majority class node
-			return findMostProbableNode(instances);
+			return findMostProbableNode(newInstances);
 		}
 		else{
-			int bestAttribute = findBestAttribute(instances, attributes);
-			List<Helper.Instance> bestInstsTrue = findTrueList(instances, bestAttribute);
+			int bestAttribute = findBestAttribute(newInstances, newAttributes);
+			List<Helper.Instance> bestInstsTrue = findTrueList(newInstances, bestAttribute);
 			//now instances represents bestInstsFalse.
-			instances.removeAll(bestInstsTrue);
+			newInstances.removeAll(bestInstsTrue);
 			//remove the current best attributes by setting it to null. Size does not change.
-			attributes.set(bestAttribute, null);
-			Node left = BuildTree(bestInstsTrue, attributes);
-			Node right = BuildTree(instances, attributes);
+			newAttributes.set(bestAttribute, null);
+			Node left = BuildTree(bestInstsTrue, newAttributes);
+			Node right = BuildTree(newInstances, newAttributes);
 			return new Node(left, right, attNames.get(bestAttribute), bestAttribute);
 		}
+	}
+
+	/**
+	 * This copies the list of given instances to a new list with a new reference
+	 * @param instances
+	 * @return
+	 */
+	private List<Helper.Instance> newInstances(List<Helper.Instance> instances){
+		List<Helper.Instance> newInstances = new ArrayList<Helper.Instance>();
+		for(Helper.Instance i: instances){
+			newInstances.add(i);
+		}
+		return newInstances;
+	}
+
+	/**
+	 * This copies the list of attributes to a new list with a new reference
+	 * @param attributes
+	 * @return
+	 */
+	private List<String> newAttributes(List<String> attributes){
+		List<String> newAttributes = new ArrayList<String>();
+		for(String s: attributes){
+			newAttributes.add(s);
+		}
+		return newAttributes;
 	}
 
 	/**
@@ -156,7 +233,7 @@ public class DTLearning {
 		int maxIndex = findMaxIndex(counts);
 		double probability = counts[maxIndex]*1.0/instances.size();
 		String name = categoryNames.get(maxIndex);
-		return new LeafNode(null,null,name,DUMMY_INDEX, probability);
+		return new LeafNode(null,null,name,maxIndex, probability);
 	}
 
 	/**
@@ -197,8 +274,10 @@ public class DTLearning {
 	/**
 	 * The main method.
 	 * @param args
+	 * @throws UnsupportedEncodingException
+	 * @throws FileNotFoundException
 	 */
-	public static void main(String[] args){
+	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException{
 		if(args.length<2){
 			System.out.println("You need to give two file names for training and testing");
 			return;
@@ -216,17 +295,18 @@ public class DTLearning {
 	private class Node{
 		public final Node left;
 		public final Node right;
-		public final String attribute;
+		public final String name;
 		public final int attIndex;
 		/**
 		 * @param left Left child Node.
 		 * @param right Right child Node.
 		 * @param attribute The attribute evaluated in this node.
+		 * @param index The position of the attribute name
 		 */
-		public Node(Node left, Node right, String attribute, int index) {
+		public Node(Node left, Node right, String name, int index) {
 			this.left = left;
 			this.right = right;
-			this.attribute = attribute;
+			this.name = name;
 			this.attIndex = index;
 		}
 	}
@@ -244,8 +324,8 @@ public class DTLearning {
 		 * @param attribute
 		 * @param p The probability of the most probable class.
 		 */
-		public LeafNode(Node left, Node right, String attribute, int index, double p) {
-			super(left, right, attribute, index);
+		public LeafNode(Node left, Node right, String name, int index, double p) {
+			super(left, right, name, index);
 			probability = p;
 		}
 	}
