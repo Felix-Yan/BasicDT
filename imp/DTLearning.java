@@ -32,7 +32,7 @@ public class DTLearning {
 		attNames = trainingSet.getAttNames();
 		root = BuildTree(trainingSet.getAllInstances(), attNames);
 		printTree();
-		//testAccuracy();
+		testAccuracy();
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class DTLearning {
 			}
 		}
 		double accuracy = count*1.0/testsetInstances.size();
-		System.out.printf("The accuracy is %.2f \n"+accuracy);
+		System.out.printf("The accuracy is %.2f \n",accuracy);
 
 	}
 
@@ -92,9 +92,9 @@ public class DTLearning {
 		Node current = root;
 		while(current.left != null){
 			if(instance.getAtt(current.attIndex)){
-				current = root.left;
+				current = current.left;
 			}else{
-				current = root.right;
+				current = current.right;
 			}
 		}
 		if(current.name.equals(categoryNames.get(instance.getCategory()))){
@@ -122,7 +122,7 @@ public class DTLearning {
 			return new LeafNode(null,null,name,category,1);
 		}
 
-		if(newAttributes.isEmpty()){
+		if(checkNull(newAttributes)){
 			//return the majority class node
 			return findMostProbableNode(newInstances);
 		}
@@ -139,6 +139,18 @@ public class DTLearning {
 		}
 	}
 
+	/**
+	 * This checks if the given list has only null elements
+	 * @return True if all the elements are null. False otherwise.
+	 */
+	private boolean checkNull(List<String> list){
+		for(String s: list){
+			if(s != null){
+				return false;
+			}
+		}
+		return true;
+	}
 	/**
 	 * This copies the list of given instances to a new list with a new reference
 	 * @param instances
@@ -187,17 +199,24 @@ public class DTLearning {
 	}
 
 	/**
-	 * This computes the impurity of given instances by using formula A/(A+B) * B/(A+B), where A and B are two sets of
-	 * the instances with opposite value of the attribute.
+	 * This computes the impurity of given instances by using formula given in the notes, it is a weighted sum of impurity
+	 * from true set and false set.
 	 * @param instances
 	 * @param index The index of attribute in attNames.
 	 * @return
 	 */
 	private double computeImpurity(List<Helper.Instance> instances, int index ){
 		List<Helper.Instance> trueList = findTrueList(instances, index);
-		int A = trueList.size();
-		int B = instances.size() - trueList.size();
-		double impurity = A*1.0/(A+B)*B/(A+B);
+		List<Helper.Instance> newInstances = newInstances(instances);//Create new reference
+        newInstances.removeAll(trueList);//Now newInstances is the falseList
+		int num = instances.size();
+		int numTrue = trueList.size();
+		int numFalse = num - numTrue;
+		double ProbTrue = numTrue*1.0/num;
+		double probFalse = numFalse*1.0/num;
+		int[] countsTrue = countCategory(trueList);
+		int[] countsFalse = countCategory(newInstances);
+		double impurity = 1.0*countsTrue[0]/numTrue*countsTrue[1]/numTrue+1.0*countsFalse[0]/numFalse*countsFalse[1]/numFalse;
 		return impurity;
 	}
 
@@ -222,16 +241,26 @@ public class DTLearning {
 	 * @return
 	 */
 	private LeafNode findMostProbableNode(List<Helper.Instance> instances){
+		int[] counts = countCategory(instances);
+		int maxIndex = findMaxIndex(counts);
+		double probability = counts[maxIndex]*1.0/instances.size();
+		String name = categoryNames.get(maxIndex);
+		return new LeafNode(null,null,name,maxIndex, probability);
+	}
+
+	/**
+	 * This counts the number of instances in each category.
+	 * @param instances
+	 * @return
+	 */
+	private int[] countCategory(List<Helper.Instance> instances){
 		int numCategories = trainingSet.getNumCategories();
 		int[] counts = new int[numCategories];
 		for(Helper.Instance i: instances){
 			int category = i.getCategory();
 			counts[category]+=1;
 		}
-		int maxIndex = findMaxIndex(counts);
-		double probability = counts[maxIndex]*1.0/instances.size();
-		String name = categoryNames.get(maxIndex);
-		return new LeafNode(null,null,name,maxIndex, probability);
+		return counts;
 	}
 
 	/**
