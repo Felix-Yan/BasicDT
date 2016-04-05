@@ -80,7 +80,7 @@ public class DTLearning {
 			}
 		}
 		double accuracy = count*1.0/testsetInstances.size();
-		System.out.printf("The accuracy is %.2f \n",accuracy);
+		System.out.printf("The decision tree classifier accuracy is %.2f \n",accuracy);
 
 	}
 
@@ -244,6 +244,7 @@ public class DTLearning {
 		int[] counts = countCategory(instances);
 		int maxIndex = findMaxIndex(counts);
 		double probability = counts[maxIndex]*1.0/instances.size();
+		System.out.printf("The baseline classifier accuracy: %.2f\n",probability);
 		String name = categoryNames.get(maxIndex);
 		return new LeafNode(null,null,name,maxIndex, probability);
 	}
